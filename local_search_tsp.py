@@ -27,8 +27,6 @@ def extract_data(TSP_file_path: str) -> np.ndarray:
     return distance_matrix, coord_matrix
 
 
-# ruchy zmieniajace zbior wierzcholkow - greedy
-
 def token_generator_edges():
     swap_tokens = tuple([(0, i, j) for i in range(50) for j in range(50)])
     inverse_tokens = tuple([(1, i, j) for i in range(50) for j in range(2,25)])
@@ -41,6 +39,7 @@ def token_generator_edges():
 
 
 def greedy_edges(distance_mx: np.ndarray, route):
+    route = np.array(route)
     distance_is_improving = True
     not_in_route = np.array([i for i in range(100) if i not in route])
     while distance_is_improving:
@@ -70,8 +69,8 @@ def greedy_edges(distance_mx: np.ndarray, route):
                     distance_is_improving = True
     return route
 
-# ruchy zmieniajace zbior wierzcholkow - steepest
 def steepest_edges(distance_mx: np.ndarray, route):
+    route = np.array(route)
     while True:
         not_in_route = np.array([i for i in range(100) if i not in route])
         best_swap_delta = np.inf
@@ -106,7 +105,7 @@ def steepest_edges(distance_mx: np.ndarray, route):
 
 def token_generator_vertices():
     swap_tokens = tuple([(0, i, j) for i in range(50) for j in range(50)])
-    inverse_tokens = tuple([(1, i, j) for i, j in itertools.combinations(range(50), 2) if abs(i-j)!=1 and abs(i-j)!=49])
+    inverse_tokens = tuple([(1, i, j) for i, j in itertools.combinations(range(50), 2)]) # if abs(i-j)!=1 and abs(i-j)!=49]
     tokens = swap_tokens + inverse_tokens
     token_numbers = np.arange(len(tokens))
     np.random.shuffle(token_numbers)
@@ -115,7 +114,9 @@ def token_generator_vertices():
 
 
 def greedy_vertices(distance_mx: np.ndarray, route):
+    route = np.array(route)
     distance_is_improving = True
+    np.route = np.array(route)
     not_in_route = np.array([i for i in range(100) if i not in route])
     while distance_is_improving:
         distance_is_improving = False
@@ -132,13 +133,30 @@ def greedy_vertices(distance_mx: np.ndarray, route):
                     distance_is_improving = True
             if token[0] == 1:
                 j, k = token[1], token[2]
+                if abs(j - k) != 1 and abs(j - k) != 49:
+                    old_dist1 = distance_mx[route[(j - 1) % 50], route[j]] + distance_mx[route[j], route[(j + 1) % 50]]
+                    old_dist2 = distance_mx[route[(k - 1) % 50], route[k]] + distance_mx[route[k], route[(k + 1) % 50]]
+                    new_dist1 = distance_mx[route[(j - 1) % 50], route[k]] + distance_mx[route[k], route[(j + 1) % 50]]
+                    new_dist2 = distance_mx[route[(k - 1) % 50], route[j]] + distance_mx[
+                        route[j], route[(k + 1) % 50]]
+                    delta = new_dist1 + new_dist2 - old_dist1 - old_dist2
+                elif k - j == 1:
+                    old_dist = distance_mx[route[(j - 1) % 50], route[j]] + distance_mx[route[k], route[(k + 1) % 50]]
+                    new_dist = distance_mx[route[(j - 1) % 50], route[k]] + distance_mx[route[j], route[(k + 1) % 50]]
+                    delta = new_dist - old_dist
+                elif k - j == 49:
+                    old_dist = distance_mx[route[48], route[49]] + distance_mx[route[0], route[1]]
+                    new_dist = distance_mx[route[48], route[0]] + distance_mx[route[49], route[1]]
+                    delta = new_dist - old_dist
+
+                '''j, k = token[1], token[2]
                 old_dist1 = distance_mx[route[(j - 1) % 50], route[j]] + distance_mx[route[j], route[(j + 1) % 50]]
                 old_dist2 = distance_mx[route[(k - 1) % 50], route[k]] + distance_mx[route[k], route[(k + 1) % 50]]
                 new_dist1 = distance_mx[route[(j - 1) % 50], route[k]] + distance_mx[
                     route[k], route[(j + 1) % 50]]
                 new_dist2 = distance_mx[route[(k - 1) % 50], route[j]] + distance_mx[
                     route[j], route[(k + 1) % 50]]
-                delta = new_dist1 + new_dist2 - old_dist1 - old_dist2
+                delta = new_dist1 + new_dist2 - old_dist1 - old_dist2'''
                 if delta < 0:
                     distold = distance(distance_mx, route)
                     route[[j, k]] = route[[k, j]]
@@ -149,8 +167,8 @@ def greedy_vertices(distance_mx: np.ndarray, route):
                     distance_is_improving = True
     return route
 
-# ruchy zmieniajace zbior wierzcholkow - steepest
 def steepest_vertices(distance_mx: np.ndarray, route):
+    route = np.array(route)
     while True:
         not_in_route = np.array([i for i in range(100) if i not in route])
         best_swap_delta = np.inf
@@ -171,6 +189,17 @@ def steepest_vertices(distance_mx: np.ndarray, route):
                 new_dist2 = distance_mx[route[(k - 1) % 50], route[j]] + distance_mx[
                     route[j], route[(k + 1) % 50]]
                 new_delta = new_dist1 + new_dist2 - old_dist1 - old_dist2
+            elif k-j == 1:
+                old_dist = distance_mx[route[(j - 1) % 50], route[j]] + distance_mx[route[k], route[(k + 1) % 50]]
+                new_dist = distance_mx[route[(j - 1) % 50], route[k]] + distance_mx[route[j], route[(k + 1) % 50]]
+                new_delta = new_dist - old_dist
+            elif k-j == 49:
+                old_dist = distance_mx[route[48], route[49]] + distance_mx[route[0], route[1]]
+                new_dist = distance_mx[route[48], route[0]] + distance_mx[route[49], route[1]]
+                new_delta = new_dist - old_dist
+            if new_delta < best_inner_delta:
+                best_inner_delta = new_delta
+                best_inner = (j, k)
         if best_swap_delta <= best_inner_delta and best_swap_delta < 0:
             new_vertex = not_in_route[best_swap[1]]
             not_in_route[best_swap[1]] = route[best_swap[0]]
@@ -187,12 +216,6 @@ def distance(distance_mx, route):
         dist += distance_mx[route[i], route[(i+1)%50]]
     return dist
 
-# ruchy zmieniajace ruchy wewnatrztrasowe - greedy
-    
-    # TODO losowac kolejnosc przegladania ruchow wewnatrztrasowych i
-    #      zmieniajacych zbior wierzcholkow
-
-
 
 os.chdir(os.path.dirname(__file__))
 
@@ -202,11 +225,6 @@ tsp2 = 'kroB100.tsp'
 dist1, coord1 = extract_data(tsp1)
 dist2, coord2 = extract_data(tsp2)
 
-# TODO start point - random search - generujemy losowe rozwiazania w petli i zwracamy 
-#      najlepsze z nich.  Algorytm uruchamiamy na czas taki jak sredni czas 
-#      najwolniejszej wersji lokalnego przeszukiwania
-
-# 100 best random solutions
 random_routes1 = []
 random_routes2 = []
 random_route_distances1 = np.empty(100, dtype="int")
@@ -230,8 +248,6 @@ for i in range(10000):
             index = np.argmax(random_route_distances2)
             random_route_distances2[index] = random_dist2
             random_routes2[index] = route
-
-
 
 
 times = dict()
@@ -269,13 +285,4 @@ for distan, coord, random_routes in ((dist1, coord1, random_routes1), (dist2, co
         plt.show()
         print(name, min_dist, avg_dist, max_dist)
         print(name + ' times:', min_time, avg_time, max_time)
-        # TODO obliczyc min, avg, max dla czasu
-
-
-# TODO implementacja musi wykorzystywac obliczanie delty funkcji celu
-
-# TODO kazdy algorytm uruchomic 100 razy startujac z rozwiazan losowych
-# TODO wartosci min, max, srednia dla funkcji celu i czasu
-# TODO wizualizacje
-# TODO w sprawozdaniu opisac sposob randomizacji
 
